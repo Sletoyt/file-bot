@@ -1,60 +1,70 @@
 import os
-import telegram
+from flask import Flask
+from threading import Thread
+from telegram import Update, InputFile
 from telegram.ext import Application, CommandHandler, ContextTypes
-from flask import Flask, request
+import base64
 
-BOT_TOKEN = "8347361707:AAHGPqpYoSqfKeex_QSvb6Wgg-BjeXD7Q10"
-ADMIN_ID = 7843231115  # आपका admin user id
-CHANNEL_ID = -1002714387561  # file storage channel id
+# Bot credentials
+TOKEN = "8347361707:AAHGPqpYoSqfKeex_QSvb6Wgg-BjeXD7Q10"
+ADMIN_ID = 7843231115
+CHANNEL_ID = -1002714387561
 
+# फाइलों की deep link जानकारी
+deep_files = {}  # {'deepid': 'filepath'}
+
+# Flask for keep_alive (Replit)
 app = Flask(__name__)
-application = Application.builder().token(BOT_TOKEN).build()
 
-# Admin द्वारा फाइल भेजें
-async def upload(update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("सिर्फ एडमिन अपलोड कर सकता है!")
-        return
-
-    # file को चैनल पर forward करें
-    if update.message.document:
-        file_id = update.message.document.file_id
-        # चैनल में फॉरवर्ड करें
-        channel_msg = await context.bot.forward_message(chat_id=CHANNEL_ID, from_chat_id=update.effective_chat.id, message_id=update.message.message_id)
-        message_id = channel_msg.message_id
-        # unique deep link बनाएं
-        deep_link = f"https://t.me/adultvideofree_bot?start=file_{message_id}"
-        await update.message.reply_text(f"Deep link ready:\n{deep_link}")
-
-upload_handler = CommandHandler("upload", upload)
-application.add_handler(upload_handler)
-
-# Deep link से फाइल भेजें
-async def start(update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if args and args[0].startswith("file_"):
-        message_id = int(args[0].replace("file_", ""))
-        # चैनल से फाइल ले कर भेजें
-        await context.bot.copy_message(chat_id=update.effective_chat.id, from_chat_id=CHANNEL_ID, message_id=message_id)
-    else:
-        await update.message.reply_text("Welcome! Send /upload to upload a file (admin only)")
-
-application.add_handler(CommandHandler("start", start))
-
-# Flask server for keep_alive
 @app.route('/')
 def home():
-    return "Bot is alive!"
+    return "Bot is Alive!"
 
-def run_flask():
+def run():
     app.run(host="0.0.0.0", port=8080)
 
-# Bot and server को संगीत रखें
-import threading
-def run_bot():
-    application.run_polling()
+def keep_alive():
+    Thread(target=run).start()
 
-t1 = threading.Thread(target=run_bot)
-t2 = threading.Thread(target=run_flask)
-t1.start()
-t2.start()
+keep_alive()
+
+# फाइल एडमिन द्वारा अपलोड करने का /upload command
+async def upload_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("सिर्फ एडमिन ही फाइल अपलोड कर सकता है।")
+        return
+    if not update.message.document:
+        await update.message.reply_text("कृपया कोई फाइल भेजें।")
+        return
+    # फाइल सेव करें
+    file = await context.bot.get_file(update.message.document.file_id)
+    filename = update.message.document.file_name
+    filepath = f"files/{filename}"
+    os.makedirs("files", exist_ok=True)
+    await file.download_to_drive(filepath)
+    # deep link जनरेट करें
+    deepid = base64.urlsafe_b64encode(filename.encode()).decode()
+    deep_files[deepid] = filepath
+    # फाइल को चैनल में भेजें
+    await context.bot.send_document(CHANNEL_ID, open(filepath, "rb"), caption=f"Uploaded by admin")
+    deep_link = f"https://t.me/adultvideofree_bot?start={deepid}"
+    await update.message.reply_text(f"Deep Link:\n{deep_link}")
+
+# deep link से start par फाइल भेजना
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if args:
+        deepid = args[0]
+        if deepid in deep_files:
+            filepath = deep_files[deepid]
+            await update.message.reply_document(open(filepath, "rb"))
+        else:
+            await update.message.reply_text("फाइल मिल नहीं रही है। संभवतः लिंक एक्सपायर/गलत है।")
+    else:
+        await update.message.reply_text("बोट एक्टिव है!")
+
+app_telegram = Application.builder().token(TOKEN).build()
+app_telegram.add_handler(CommandHandler("start", start))
+app_telegram.add_handler(CommandHandler("upload", upload_file))
+app_telegram.run_polling()
+            
