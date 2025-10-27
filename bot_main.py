@@ -23,15 +23,15 @@ app = Client(
 
 # --- Message 1: Regular /start Command ---
 regular_start_text = (
-    "**नमस्ते!** 👋\n\n"
-    "यह एक **स्पेशल फ़ाइल लिंक बॉट** है।\n"
-    "फ़ाइल प्राप्त करने के लिए, कृपया **स्पेशल लिंक** का उपयोग करें जो आपको हमारे चैनल से मिलेगा।\n\n"
-    "लिंक नीचे बटन में दिया गया है। **बेहतरीन फ़ॉन्ट** के लिए हमने Markdown का उपयोग किया है।"
+    "**Hello** 👋\n\n"
+    "This is a **Link bot**\nBy @AdultAdsfree\n"
+    "To get the file, please use the **Special Link** which you will get from our channel.\n\n"
+    "The link is given in the button below.👇🏻"
 )
 
 # Channel Link Button
 channel_link_button = InlineKeyboardMarkup([
-    [InlineKeyboardButton("हमारा चैनल ज्वाइन करें (स्पेशल लिंक)", url="https://t.me/+fnk2mum5ClNhMWM9")]
+    [InlineKeyboardButton("Click Here 😚", url="https://t.me/+fnk2mum5ClNhMWM9")]
 ])
 
 @app.on_message(filters.command("start"))
@@ -50,16 +50,16 @@ async def start_command_handler(client, message):
             )
             
             # Message 2: Success Message
-            deep_start_success_text = "**✅ Done!**\n\nआपकी फ़ाइल भेज दी गई है।"
+            deep_start_success_text = "**✅ Done!**"
             await message.reply_text(
                 deep_start_success_text,
                 parse_mode=ParseMode.MARKDOWN
             )
 
         except ValueError:
-            await message.reply_text("क्षमा करें, यह एक अमान्य फ़ाइल कोड है।")
+            await message.reply_text("**Link error**")
         except Exception as e:
-            await message.reply_text(f"फ़ाइल भेजते समय कोई त्रुटि हुई। शायद यह लिंक अब मान्य नहीं है।")
+            await message.reply_text(f"This link is **not valid**")
 
     else:
         # Regular Start: /start
@@ -110,11 +110,11 @@ app_server = Flask(__name__)
 
 @app_server.route('/')
 def home():
-    return "Telegram Bot is Running!"
+    return "what are you doing hare and why you want find this"
 
 def run_flask():
     # Flask को 0.0.0.0 पर चलाएं ताकि वह Replit के सर्वर पर एक्सेस हो सके
-    app_server.run(host='0.0.0.0', port=8080)
+    app_server.run(host='0.0.0.0', port=5000)
 
 # --- Main Execution ---
 def main():
